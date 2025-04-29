@@ -15,7 +15,7 @@ const REDIRECT_URI = process.env.REDIRECT_URI;
 
 // ✅ Enable CORS for frontend (React)
 await fastify.register(cors, {
-  origin: "http://localhost:3000", // Allow requests from React frontend
+  origin: "http://senior-frontend-eosin.vercel.app", // Allow requests from React frontend
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
@@ -53,7 +53,8 @@ fastify.get("/oauth_callback", async (req, reply) => {
       console.log("✅ Access Token:", accessToken);
 
       // Redirect user back to React frontend
-      reply.redirect(`http://localhost:3000?login=success`);
+      reply.redirect(`${process.env.FRONTEND_URL}?login=success`);
+
     } else {
       console.error("Streamlabs API Error:", data);
       reply.status(500).send("Failed to retrieve access token.");
