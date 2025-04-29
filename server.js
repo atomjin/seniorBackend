@@ -105,10 +105,10 @@ fastify.get("/api/socket_token", async (req, reply) => {
 
 // ✅ Start Fastify Server
 const PORT = process.env.PORT || 8000;
-fastify.listen({ port: PORT, host: "0.0.0.0" }, (err, address) => {
-  if (err) {
-    console.error("Error starting server:", err);
-    process.exit(1);
-  }
-  console.log(`🚀 Fastify server running at ${address}`);
-});
+try {
+  await fastify.listen({ port: PORT, host: "0.0.0.0" });
+  console.log(`🚀 Server running on port ${PORT}`);
+} catch (err) {
+  fastify.log.error(err);
+  process.exit(1);
+}
