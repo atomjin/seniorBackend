@@ -1,34 +1,39 @@
 import Fastify from "fastify";
-import cors from "@fastify/cors";
-import fetch from "node-fetch";
-import dotenv from "dotenv";
+import cors from "@fastify/cors"; // CORS for frontend connection
+import fetch from "node-fetch"; // For Streamlabs API requests
+import dotenv from "dotenv"; // Load environment variables
 
 dotenv.config();
 
 const fastify = Fastify({ logger: true });
 
-let accessToken = null;
+let accessToken = null; // Store the access token
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
-const FRONTEND_URL = process.env.FRONTEND_URL;
 
-// CORS for frontend
+// ✅ Enable CORS for frontend (React)
 await fastify.register(cors, {
-  origin: [FRONTEND_URL, "http://localhost:3000"],
-  methods: ["GET", "POST"],
+  origin: "https://senior-frontend-eosin.vercel.app", // Allow requests from React frontend
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 });
 
-// OAuth callback
+// ✅ Streamlabs OAuth Callback
 fastify.get("/oauth_callback", async (req, reply) => {
   const { code } = req.query;
 
-  if (!code) return reply.status(400).send("Missing authorization code");
+  if (!code) {
+    reply.status(400).send("Authorization code is missing.");
+    return;
+  }
+
+  console.log(`Received authorization code: ${code}`);
 
   try {
-    const res = await fetch("https://streamlabs.com/api/v2.0/token", {
+    const response = await fetch("https://streamlabs.com/api/v2.0/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
@@ -40,35 +45,69 @@ fastify.get("/oauth_callback", async (req, reply) => {
       }),
     });
 
-    const data = await res.json();
+    const data = await response.json();
+    console.log("Response from Streamlabs:", data);
+
     if (data.access_token) {
       accessToken = data.access_token;
-      console.log("✅ Access token stored");
-      reply.redirect(`${FRONTEND_URL}?login=success`);
+      console.log("✅ Access Token:", accessToken);
+
+      // Redirect user back to React frontend
+      reply.redirect(`${process.env.FRONTEND_URL}?login=success`);
+
     } else {
-      console.error("❌ Token exchange failed", data);
-      reply.status(500).send("Token exchange failed");
+      console.error("Streamlabs API Error:", data);
+      reply.status(500).send("Failed to retrieve access token.");
     }
-  } catch (err) {
-    console.error("❌ OAuth error:", err.message);
-    reply.status(500).send("OAuth failed");
+  } catch (error) {
+    console.error("Error exchanging authorization code:", error.message);
+    reply.status(500).send("Failed to retrieve access token.");
   }
 });
 
-// Access token endpoint (WebSocket server will call this)
+// ✅ Provide stored access token
 fastify.get("/api/token", async (req, reply) => {
   if (accessToken) {
     reply.send({ access_token: accessToken });
   } else {
-    reply.status(404).send("No token");
+    reply.status(404).send("Access token not available. Please authenticate first.");
   }
 });
 
-// Start server
+// ✅ Check if user is logged in
+fastify.get("/api/status", async (req, reply) => {
+  console.log("🔄 Checking if user is logged in...");
+  if (accessToken) {
+    console.log("✅ User is logged in!");
+    return reply.send({ loggedIn: true });
+  } else {
+    console.log("❌ User is NOT logged in!");
+    return reply.send({ loggedIn: false });
+  }
+});
+
+// ✅ Generate WebSocket API Token
+fastify.get("/api/socket_token", async (req, reply) => {
+  if (!accessToken) {
+    return reply.status(401).send({ error: "Not authenticated. Please log in first." });
+  }
+
+  try {
+    const socketApiToken = accessToken;
+    console.log("Generated WebSocket API Token:", socketApiToken);
+
+    reply.send({ socket_token: socketApiToken });
+  } catch (error) {
+    console.error("Failed to retrieve WebSocket API token:", error);
+    reply.status(500).send({ error: "Failed to generate WebSocket API token" });
+  }
+});
+
+// ✅ Start Fastify Server
 const PORT = process.env.PORT || 8000;
 try {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
-  console.log(`🚀 Fastify backend running on http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);
