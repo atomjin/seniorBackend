@@ -1,53 +1,57 @@
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
-import axios from 'axios';
-import dotenv from 'dotenv';
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import axios from "axios";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-// Config
 const PORT = process.env.PORT || 8080;
-const API_URL = 'https://streamlabs.com/api/v1.0/donations';
-const TOKEN_API = 'http://down2depth-production.up.railway.app/api/token';
-
-// Create an HTTP server to attach WebSocket
-const server = createServer();
-const wss = new WebSocketServer({ server });
+const TOKEN_API = "https://down2depth-production.up.railway.app/api/token";
+const DONATION_API = "https://streamlabs.com/api/v1.0/donations";
 
 let accessToken = null;
 
-// Refresh the access token from your backend
+// Create WebSocket server
+const httpServer = createServer();
+const wss = new WebSocketServer({ server: httpServer });
+
+wss.on("connection", (ws) => {
+  console.log("🔌 WebSocket client connected");
+  ws.on("close", () => console.log("❎ WebSocket client disconnected"));
+  ws.on("message", (msg) => console.log("📨 From client:", msg.toString()));
+});
+
+// Pull token from Fastify backend
 async function refreshToken() {
   try {
     const res = await axios.get(TOKEN_API);
     accessToken = res.data.access_token;
-    console.log('✅ Refreshed access token');
+    console.log("🔁 Refreshed token");
   } catch (err) {
-    console.error('❌ Failed to refresh token:', err.message);
+    console.error("❌ Could not refresh token:", err.message);
   }
 }
 
-// Poll Streamlabs for new donations
+// Poll donations from Streamlabs
 async function fetchDonations() {
   if (!accessToken) return;
 
   try {
-    const res = await axios.get(API_URL, {
+    const res = await axios.get(DONATION_API, {
       params: { access_token: accessToken },
     });
 
-    const donations = res.data.data;
-
+    const donations = res.data.data || [];
     donations.forEach((donation) => {
-      console.log('🎁 Donation received:', donation);
+      console.log("🎁 Donation:", donation);
       broadcast(donation);
     });
   } catch (err) {
-    console.error('❌ Donation fetch failed:', err.message);
+    console.error("❌ Donation fetch failed:", err.message);
   }
 }
 
-// Broadcast to all connected WebSocket clients
+// Send to all clients
 function broadcast(data) {
   wss.clients.forEach((client) => {
     if (client.readyState === 1) {
@@ -56,18 +60,11 @@ function broadcast(data) {
   });
 }
 
-// WebSocket connection
-wss.on('connection', (ws) => {
-  console.log('🔌 WebSocket client connected');
-  ws.on('message', (msg) => console.log('📨 Client said:', msg));
-  ws.on('close', () => console.log('❎ Client disconnected'));
-});
-
-// Refresh token every 30s and poll donations every 5s
+// Set intervals
 setInterval(refreshToken, 30000);
 setInterval(fetchDonations, 5000);
 
-// Start the server
-server.listen(PORT, () => {
-  console.log(`🌐 WebSocket server running on ws://0.0.0.0:${PORT}`);
+// Start server
+httpServer.listen(PORT, () => {
+  console.log(`🌐 WebSocket server running at ws://0.0.0.0:${PORT}`);
 });
