@@ -15,7 +15,7 @@ const REDIRECT_URI = process.env.REDIRECT_URI;
 
 // ✅ Enable CORS for frontend (React)
 await fastify.register(cors, {
-  origin: "https://senior-frontend-eosin.vercel.app", // Allow requests from React frontend
+  origin: "https://senior-frontend-cyut.vercel.app/", // Allow requests from React frontend
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
