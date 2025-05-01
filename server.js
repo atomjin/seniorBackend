@@ -15,7 +15,7 @@ const REDIRECT_URI = process.env.REDIRECT_URI;
 
 // ✅ Enable CORS for frontend (React)
 await fastify.register(cors, {
-  origin: "https://senior-frontend-cyut.vercel.app/", // Allow requests from React frontend
+  origin: "https://senior-frontend-cyut.vercel.app", // Allow requests from React frontend
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
@@ -53,8 +53,7 @@ fastify.get("/oauth_callback", async (req, reply) => {
       console.log("✅ Access Token:", accessToken);
 
       // Redirect user back to React frontend
-      reply.redirect(`${process.env.FRONTEND_URL}?login=success`);
-
+      reply.redirect(`https://senior-frontend-cyut.vercel.app/?login=success`);
     } else {
       console.error("Streamlabs API Error:", data);
       reply.status(500).send("Failed to retrieve access token.");
@@ -105,10 +104,10 @@ fastify.get("/api/socket_token", async (req, reply) => {
 
 // ✅ Start Fastify Server
 const PORT = process.env.PORT || 8000;
-try {
-  await fastify.listen({ port: PORT, host: "0.0.0.0" });
-  console.log(`🚀 Server running on port ${PORT}`);
-} catch (err) {
-  fastify.log.error(err);
-  process.exit(1);
-}
+fastify.listen({ port: PORT, host: "0.0.0.0" }, (err, address) => {
+  if (err) {
+    console.error("Error starting server:", err);
+    process.exit(1);
+  }
+  console.log(`🚀 Fastify server running at ${address}`);
+});
