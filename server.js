@@ -17,7 +17,11 @@ await fastify.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 });
-
+fastify.get("/", async (req, reply) => {
+  reply.send({ message: "Hello from Fastify!" });
+}
+);
+// ✅ Streamlabs OAuth Authorization  
 // ✅ Streamlabs OAuth Callback
 fastify.get("/oauth_callback", async (req, reply) => {
   const { code } = req.query;
