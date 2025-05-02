@@ -6,9 +6,6 @@ import dotenv from "dotenv"; // Load environment variables
 dotenv.config();
 
 const fastify = Fastify({ logger: true });
-
-let accessToken = null; // Store the access token
-
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
@@ -49,11 +46,8 @@ fastify.get("/oauth_callback", async (req, reply) => {
     console.log("Response from Streamlabs:", data);
 
     if (data.access_token) {
-      accessToken = data.access_token;
-      console.log("✅ Access Token:", accessToken);
-
-      // Redirect user back to React frontend
-      reply.redirect(`https://senior-frontend-cyut.vercel.app/?login=success&access_token=${accessToken}`);
+      const accessToken = data.access_token;
+      reply.redirect(`https://senior-frontend-cyut.vercel.app/?access_token=${accessToken}`);
     } else {
       console.error("Streamlabs API Error:", data);
       reply.status(500).send("Failed to retrieve access token.");
@@ -61,44 +55,6 @@ fastify.get("/oauth_callback", async (req, reply) => {
   } catch (error) {
     console.error("Error exchanging authorization code:", error.message);
     reply.status(500).send("Failed to retrieve access token.");
-  }
-});
-
-// ✅ Provide stored access token
-fastify.get("/api/token", async (req, reply) => {
-  if (accessToken) {
-    reply.send({ access_token: accessToken });
-  } else {
-    reply.status(404).send("Access token not available. Please authenticate first.");
-  }
-});
-
-// ✅ Check if user is logged in
-fastify.get("/api/status", async (req, reply) => {
-  console.log("🔄 Checking if user is logged in...");
-  if (accessToken) {
-    console.log("✅ User is logged in!");
-    return reply.send({ loggedIn: true });
-  } else {
-    console.log("❌ User is NOT logged in!");
-    return reply.send({ loggedIn: false });
-  }
-});
-
-// ✅ Generate WebSocket API Token
-fastify.get("/api/socket_token", async (req, reply) => {
-  if (!accessToken) {
-    return reply.status(401).send({ error: "Not authenticated. Please log in first." });
-  }
-
-  try {
-    const socketApiToken = accessToken;
-    console.log("Generated WebSocket API Token:", socketApiToken);
-
-    reply.send({ socket_token: socketApiToken });
-  } catch (error) {
-    console.error("Failed to retrieve WebSocket API token:", error);
-    reply.status(500).send({ error: "Failed to generate WebSocket API token" });
   }
 });
 
