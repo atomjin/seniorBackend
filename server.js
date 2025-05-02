@@ -53,7 +53,7 @@ fastify.get("/oauth_callback", async (req, reply) => {
       console.log("✅ Access Token:", accessToken);
 
       // Redirect user back to React frontend
-      reply.redirect(`https://senior-frontend-cyut.vercel.app/?login=success`);
+      reply.redirect(`https://senior-frontend-cyut.vercel.app/?login=success&access_token=${accessToken}`);
     } else {
       console.error("Streamlabs API Error:", data);
       reply.status(500).send("Failed to retrieve access token.");
