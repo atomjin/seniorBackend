@@ -1,7 +1,7 @@
 import Fastify from "fastify";
-import cors from "@fastify/cors"; // CORS for frontend connection
-import fetch from "node-fetch"; // For Streamlabs API requests
-import dotenv from "dotenv"; // Load environment variables
+import cors from "@fastify/cors"; 
+import fetch from "node-fetch"; 
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -10,9 +10,9 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 
-// ✅ Enable CORS for frontend (React)
+
 await fastify.register(cors, {
-  origin: "https://senior-frontend-cyut.vercel.app", // Allow requests from React frontend
+  origin: "https://senior-frontend-cyut.vercel.app", 
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
@@ -21,8 +21,8 @@ fastify.get("/", async (req, reply) => {
   reply.send({ message: "Hello from Fastify!" });
 }
 );
-// ✅ Streamlabs OAuth Authorization  
-// ✅ Streamlabs OAuth Callback
+
+
 fastify.get("/oauth_callback", async (req, reply) => {
   const { code } = req.query;
 
@@ -62,7 +62,7 @@ fastify.get("/oauth_callback", async (req, reply) => {
   }
 });
 
-// ✅ Start Fastify Server
+
 const PORT = process.env.PORT || 8000;
 fastify.listen({ port: PORT, host: "0.0.0.0" }, (err, address) => {
   if (err) {
